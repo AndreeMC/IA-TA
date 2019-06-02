@@ -24,6 +24,7 @@ import optparse
 import random
 import csv
 import numpy as np
+import genetic_algorithm as ga
 
 # we need to import python modules from the $SUMO_HOME/tools directory
 if 'SUMO_HOME' in os.environ:
