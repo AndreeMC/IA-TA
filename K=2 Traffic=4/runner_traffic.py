@@ -37,7 +37,7 @@ import traci  # noqa
 
 
 def generate_routefile():
-    random.seed(42)  # make tests reproducible
+    #random.seed(42)  # make tests reproducible
     N = 57600  # number of time steps
     # demand per second from different directions
     pWE = 1. / 10
@@ -48,7 +48,7 @@ def generate_routefile():
     with open("data/osm.rou.xml", "w") as routes:
         print("""<routes>
         <vType id="Bus" accel="0.8" decel="4.5" sigma="0.5" length="5" minGap="2.5" maxSpeed="16.67" \
-guiShape="bus"/>
+        guiShape="bus"/>
 
         <route id="right" edges="14342450 315218164#1 315218164#2 315218164#3 315218164#4 315218164#5 315218164#6 315218164#7 315218164#8 315218164#9 315218164#10 315218164#11" />
 
@@ -82,46 +82,42 @@ guiShape="bus"/>
             
         print("</routes>", file=routes)
 
-# The program looks like this
-#    <tlLogic id="0" type="static" programID="0" offset="0">
-# the locations of the tls are      NESW
-#        <phase duration="30" state="GrGr"/>
-#        <phase duration="5"  state="yryr"/>
-#        <phase duration="30" state="rGrG"/>
-#        <phase duration="5"  state="ryry"/>
-#    </tlLogic>
-
 def run():
     """execute the TraCI control loop"""
-    step = 0
-    
-    NewCycleTime = 90
-    TimePhase2 = 42
-    TimePhase4 = 42
-    K = 2
-    Tw = 6
-    n = 0			# n
-    TotalHalt = 0	# TotalHalt
-    TotalWTime = 0	# TotalWTime
-  
 
+    #step = 0
+    #TimePhase2 = 42
+    #TimePhase4 = 42
+    K = 2                       # Parametro de tuneo de funcion fitness
+    Tw = 6                      # Duracion de fases en ambar ( 2 fases de ambar de 3 segundos)
+    RefreshTime = 180           # Cada cuanto tiempo se actualizaran los tiempos en los semaforos
+  
     #Definir: Arreglo de n y Halt COMPLETE
   
-    number=np.array([0,0,0,0,0,0,0,0,0,0])
+    number=np.array([0,0,0,0,0,0,0,0,0,0])                  # Arreglo de cantidad de ciclos que pasaron cada "RefreshTime" segundos
+    phase_flag=np.array([3,3,3,3,3,3,3,3,3,3])              # Arreglo de Flag de fases
+
+    NewCycleTime=np.array([90,90,90,90,90,90,90,90,90,90])  # Arreglo de duracion de cada Ciclo en las 10 intersecciones
+
+    totalVeh_acum = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+    totalVeh_average = np.array([[0.0,0.0,0.0,0.0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
+
+    halt_acum=np.array([0,0,0,0,0,0,0,0,0,0])               # Suma de Cantidad de vehiculos detenidos al inicio de cada ciclo en "RefreshTime" segundos
+    halt_average=np.array([0.0,0,0,0,0,0,0,0,0,0])          # Cantidad promedio de vehiculos detenidos al inicio del ciclo en "RefreshTime" segundos
+    halt_180=[0.0]                                          # Arreglo que registrara cada "RefreshTime" segundos la Cantidad promedio de vehiculos
+                                                            # detenidos al inicio del ciclo en toda la configuracion
     
-    halt_acum=np.array([0,0,0,0,0,0,0,0,0,0])
-    halt_average=np.array([0.0,0,0,0,0,0,0,0,0,0])
-    halt_180=[0.0]
+    cycle_acum=np.array([0,0,0,0,0,0,0,0,0,0])              # Suma de Duracion de ciclo en "RefreshTime" segundos
+    cycle_average=np.array([0.0,0,0,0,0,0,0,0,0,0])         # Duracion de ciclo promedio en "RefreshTime" segundos
+    cycle_180=[0.0]                                         # Arreglo que registrara cada "RefreshTime" segundos la Duracion de ciclo promedio en
+                                                            # toda la configuracion
     
-    cycle_acum=np.array([0,0,0,0,0,0,0,0,0,0])
-    cycle_average=np.array([0.0,0,0,0,0,0,0,0,0,0])
-    cycle_180=[0.0]
+    waiting_acum=np.array([0,0,0,0,0,0,0,0,0,0])            # Suma de Tiempo de espera al inicio de cada ciclo en "RefreshTime" segundos
+    waiting_average=np.array([0.0,0,0,0,0,0,0,0,0,0])       # Tiempo de espera promedio al inicio del ciclo en "RefreshTime" segundos
+    waiting_180=[0.0]                                       # Arreglo que registrara cada "RefreshTime" segundos el Tiempo de espera promedio
+                                                            # al inicio del ciclo en toda la configuracion
     
-    waiting_acum=np.array([0,0,0,0,0,0,0,0,0,0])
-    waiting_average=np.array([0.0,0,0,0,0,0,0,0,0,0])
-    waiting_180=[0.0]    
-    
-    timing_Halt=180
+    RefreshingTime=RefreshTime                              # Inicializo el tiempo de actualizacion
 
     
     #Nombres COMPLETE
@@ -134,18 +130,23 @@ def run():
     T = np.array([[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90]])
     Phase = np.array([[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42]])
     
-    #Inicializar todos los semaforos COMPLETE
+
+    #Inicializar todos los semaforos en Fase 1
     for i in range(len(Lights)):
         traci.trafficlight.setPhase(Lights[i], 0)
 
-    while timing_Halt <= 3600:
-
-        #Busca el tiempo siguiente
-        timing = T.min()
+    # Simulación de 1 hora
+    while RefreshingTime <= 3600:
         
-        if timing_Halt < timing:
-            traci.simulationStep(timing_Halt)
-            for i in range(len(number)):
+        timing = T.min()                                    # Busca el tiempo siguiente de la matriz T (el mas proximo)
+        
+        if RefreshingTime < timing:                         # Si el tiempo de actualizacion esta mas proximo que todos los tiempos de la matriz T
+            traci.simulationStep(RefreshingTime)            # Espera a que la simulacion llegue al tiempo de actualizacion
+            for i in range(len(totalVeh_acum)):
+                for j in range(len(totalVeh_acum[i])):
+                    totalVeh_average[i][j]=totalVeh_acum[i][j]/number[i]
+                    totalVeh_acum[i][j]=0
+
                 halt_average[i]=halt_acum[i]/number[i]
                 cycle_average[i]=cycle_acum[i]/number[i]
                 waiting_average[i]=waiting_acum[i]/number[i]
@@ -154,15 +155,18 @@ def run():
                 halt_acum[i]=0
                 cycle_acum[i]=0
                 waiting_acum[i]=0
+                phase_flag[i]=4                             # Pone arreglo de phase_flag a 4
                 
             halt_180.append(sum(halt_average))
-            cycle_180.append(sum(cycle_average))
-            waiting_180.append(sum(waiting_average))
+            cycle_180.append(sum(cycle_average))            # Agrego el valor de duracion de ciclo promedio de la configuracion al arreglo
+            waiting_180.append(sum(waiting_average))        # Agrego el valor de tiempo de espera promedio de la configuracion al arreglo
+            RefreshingTime += RefreshTime                   # Actualizo el tiempo de actualizacion
 
-            timing_Halt +=180
+            # LLAMAR A GENETICOS
 
+            # FIN DE GENETICOS
         
-        traci.simulationStep(timing)
+        traci.simulationStep(timing)                        # Espera a que la simulacion llegue al tiempo mas proximo de la matriz T
 
         for i in range(len(T)):
                 for j in range(len(T[i])):
@@ -172,20 +176,26 @@ def run():
                             Number_W = traci.lane.getLastStepVehicleNumber(Lanes[i][1])
                             Number_N = traci.lane.getLastStepVehicleNumber(Lanes[i][2])
                             Number_S = traci.lane.getLastStepVehicleNumber(Lanes[i][3])
-                            TotalNumber = Number_N + Number_S + Number_E + Number_W
 
-                            NewCycleTime = round(((TotalNumber/K)+1)*Tw)
-                            TimePhase2 = round(((Number_E + Number_W)/(K+TotalNumber))*NewCycleTime) -1 + 5
-                            NewCycleTime = NewCycleTime + 10
-                            TimePhase4 = NewCycleTime - TimePhase2 - Tw -2                
+                            totalVeh_acum[i][0] = totalVeh_acum[i][0] + Number_E
+                            totalVeh_acum[i][1] = totalVeh_acum[i][1] + Number_W
+                            totalVeh_acum[i][2] = totalVeh_acum[i][2] + Number_N
+                            totalVeh_acum[i][3] = totalVeh_acum[i][3] + Number_S
+
+                            #TotalNumber = Number_N + Number_S + Number_E + Number_W
+
+                            #NewCycleTime = round(((TotalNumber/K)+1)*Tw)
+                            #TimePhase2 = round(((Number_E + Number_W)/(K+TotalNumber))*NewCycleTime) -1 + 5
+                            #NewCycleTime = NewCycleTime + 10
+                            #TimePhase4 = NewCycleTime - TimePhase2 - Tw -2                
 
                             T[i][0] = timing + 1
-                            T[i][1] = timing + TimePhase2 + (Tw/2) + 1 + 1
-                            T[i][2] = timing + NewCycleTime
-                            Phase[i][0] = TimePhase2
-                            Phase[i][1] = TimePhase4
+                            T[i][1] = timing + Phase[i][0] + (Tw/2) + 1 + 1
+                            T[i][2] = timing + NewCycleTime[i]
+                            #Phase[i][0] = TimePhase2
+                            #Phase[i][1] = TimePhase4
 
-                            Times = [NewCycleTime, TimePhase2+1, Tw/2,TimePhase4+1, Tw/2]
+                            #Times = [NewCycleTime, TimePhase2+1, Tw/2,TimePhase4+1, Tw/2]
                             #print("Inter:",i," ",Times)
 
                             Halt_N = traci.lane.getLastStepHaltingNumber(Lanes[i][0])
@@ -202,13 +212,18 @@ def run():
                             
                             
                             halt_acum[i] = halt_acum[i] + TotalHalt
-                            cycle_acum[i] = cycle_acum[i] + NewCycleTime
+                            cycle_acum[i] = cycle_acum[i] + NewCycleTime[i]
                             waiting_acum[i] = waiting_acum[i] + TotalWait
                             
                             number[i] = number[i]+1
+
+                            if (phase_flag[i]==4):    # Si se actualizaron los tiempos, reinicia la matriz phase_flag en 0 para cambiar la duracion de fases
+                                phase_flag[i]=0
                             
                         else:
-                            traci.trafficlight.setPhaseDuration(Lights[i], Phase[i][j])
+                            if (phase_flag[i]<3):
+                                traci.trafficlight.setPhaseDuration(Lights[i], Phase[i][j])
+                                phase_flag += 1 
                             T[i][j] = 99999
                             
     
@@ -229,7 +244,7 @@ def run():
         for i in range(len(halt_180)):
             writer.writerow({'Total Halting vehicles': halt_180[i], 'Total Cycle Time':cycle_180[i], 'Total Waiting Time': waiting_180[i]})
     # Fin
-
+    
     traci.close()
     sys.stdout.flush()
     
@@ -255,7 +270,7 @@ if __name__ == "__main__":
         sumoBinary = checkBinary('sumo-gui')
 
     # first, generate the route file for this simulation
-    generate_routefile()
+    #generate_routefile()
 
     # this is the normal way of using traci. sumo is started as a
     # subprocess and then the python script connects and runs
