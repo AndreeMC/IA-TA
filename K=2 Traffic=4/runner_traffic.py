@@ -164,6 +164,27 @@ def run():
             RefreshingTime += RefreshTime                   # Actualizo el tiempo de actualizacion
 
             # LLAMAR A GENETICOS
+            
+            # build the pool of alleles with the suitable random numbers
+            target_example = [[10,20], [10,20], [10,20], [10,20], [10,20], [10,20], [10,20], [10,20], [10,20], [10,20]]
+            #queued_vehicles = [[10,20,10,20], [10,20,10,20], [10,20,10,20], [10,20,10,20],[10,20,10,20], [10,20,10,20],[10,20,10,20], [10,20,10,20],[10,20,10,20], [10,20,10,20]]
+            allele_pool = []
+            allele_pool.extend( [x for x in range(5, 60)]) # posibles valores para los semaforos en verde
+
+            #initialize a initial population randomnly
+            num_individuals = 100
+            population = ga.init_population(num_individuals, len(target_example)*2, allele_pool)
+
+            #call genetic algorithm
+            best_ind, best_fitness = ga.genetic_algorithm(population, ga.gpa_maximization, totalVeh_average, 300, 0.0, "onepoint", "position")
+
+            for i in range(len(Phase)):
+                NewCycleTime[i] = Tw
+                for j in range(len(Phase[i])):
+                    Phase[i][j] = best_ind.chromosome[i][j]-1
+                    NewCycleTime[i] = NewCycleTime[i] + Phase[i][j] + 1
+            #plt.plot(bestfitness)
+            #plt.show()
 
             # FIN DE GENETICOS
         
