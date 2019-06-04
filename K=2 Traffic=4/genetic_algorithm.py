@@ -37,8 +37,8 @@ class Individual:
     def crossover_onepoint(self, other):
         "Retorna dos nuevos individuos del cruzamiento de un punto entre individuos self y other "
         c = randrange(len(self.chromosome))
-        ind1 = Individual(self.chromosome[:c] + other.chromosome[c:], allele_pool)
-        ind2 = Individual(other.chromosome[:c] + self.chromosome[c:], allele_pool)
+        ind1 = Individual(self.chromosome[:c] + other.chromosome[c:], self.allele_pool)
+        ind2 = Individual(other.chromosome[:c] + self.chromosome[c:], self.allele_pool)
         return [ind1, ind2]   
     
     
@@ -53,17 +53,17 @@ class Individual:
             else:
                 chromosome1.append(other.chromosome[i])
                 chromosome2.append(self.chromosome[i])
-        ind1 = Individual(chromosome1, allele_pool)
-        ind2 = Individual(chromosome2, allele_pool)
+        ind1 = Individual(chromosome1, self.allele_pool)
+        ind2 = Individual(chromosome2, self.allele_pool)
         return [ind1, ind2] 
 
     def mutate_position(self):
         "Cambia aleatoriamente el alelo de un gen."
         mutated_chromosome = deepcopy(self.chromosome)
         mutGene = randrange(0,len(mutated_chromosome)) 
-        newAllele = allele_pool[randrange(0,len(allele_pool))]
+        newAllele = self.allele_pool[randrange(0,len(self.allele_pool))]
         mutated_chromosome[mutGene] = newAllele
-        return Individual(mutated_chromosome, allele_pool)
+        return Individual(mutated_chromosome, self.allele_pool)
         
     def mutate_swap(self):
         "Escoge dos genes e intercambia sus alelos"
@@ -73,7 +73,7 @@ class Individual:
         temp = mutated_chromosome[mutGen1]
         mutated_chromosome[mutGen1] = mutated_chromosome[mutGen2]
         mutated_chromosome[mutGen2] = temp
-        return Individual(mutated_chromosome, allele_pool)
+        return Individual(mutated_chromosome, self.allele_pool)
 
 
 # #### fitness function to evaluarte one individual
@@ -99,9 +99,11 @@ def matching_characters(chromosome, target_string):
 def gpa_maximization(chromosome, queued_vehicles):
     """Retorna el fitness de un cromosoma la maximization de la funcion convexa"""
     fitness = 0 # initialize fitness to 0
+    #print("NUEVO CROMOSOMA")
     for i in range(len(chromosome)):
         # increment fitness by 1 for every matching character
-        fitness = gpa_one_intersection(chromosome[i], queued_vehicles[i])
+        #print("Interseccion:",i," ",chromosome[i])
+        fitness += gpa_one_intersection(chromosome[i], queued_vehicles[i])
     return fitness
 
 
@@ -113,9 +115,11 @@ def gpa_one_intersection(time_inter, queued_inter, k=2):
     fitness = 0
     total_time = sum(time_inter) + 6
 
-    for i in range(0, len(queued_inter)):
-        fitness += gpa_one_lane(time_inter[i%2],queued_inter[i], total_time)
-        
+    fitness += gpa_one_lane(time_inter[0],queued_inter[0], total_time)
+    fitness += gpa_one_lane(time_inter[0],queued_inter[1], total_time)
+    fitness += gpa_one_lane(time_inter[1],queued_inter[2], total_time)
+    fitness += gpa_one_lane(time_inter[1],queued_inter[3], total_time)
+    
     return fitness
 
 
@@ -281,19 +285,3 @@ def genetic_algorithm(population, fitness_fn, queued_vehicles, ngen=1000, pmut=0
 # In[201]:
 
 
-# build the pool of alleles with the suitable random numbers
-target_example = [[10,20], [10,20], [10,20], [10,20], [10,20], [10,20], [10,20], [10,20], [10,20], [10,20]]
-queued_vehicles = [[10,20,10,20], [10,20,10,20], [10,20,10,20], [10,20,10,20],[10,20,10,20], [10,20,10,20],
-                   [10,20,10,20], [10,20,10,20],[10,20,10,20], [10,20,10,20]]
-allele_pool = []
-allele_pool.extend( [x for x in range(20, 180)]) # posibles valores para los semaforos en verde
-
-#initialize a initial population randomnly
-num_individuals = 100
-population = init_population(num_individuals, len(target_example)*2, allele_pool)
-
-#call genetic algorithm
-best_ind, best_fitness = genetic_algorithm(population, gpa_maximization, queued_vehicles, 300, 0.0, "onepoint", "position")
-
-plt.plot(bestfitness)
-plt.show()
