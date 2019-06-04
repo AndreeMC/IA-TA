@@ -99,9 +99,11 @@ def matching_characters(chromosome, target_string):
 def gpa_maximization(chromosome, queued_vehicles):
     """Retorna el fitness de un cromosoma la maximization de la funcion convexa"""
     fitness = 0 # initialize fitness to 0
+    #print("NUEVO CROMOSOMA")
     for i in range(len(chromosome)):
         # increment fitness by 1 for every matching character
-        fitness = gpa_one_intersection(chromosome[i], queued_vehicles[i])
+        #print("Interseccion:",i," ",chromosome[i])
+        fitness += gpa_one_intersection(chromosome[i], queued_vehicles[i])
     return fitness
 
 

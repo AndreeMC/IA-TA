@@ -92,13 +92,10 @@ def run():
     K = 2                       # Parametro de tuneo de funcion fitness
     Tw = 6                      # Duracion de fases en ambar ( 2 fases de ambar de 3 segundos)
     RefreshTime = 180           # Cada cuanto tiempo se actualizaran los tiempos en los semaforos
-  
-    #Definir: Arreglo de n y Halt COMPLETE
-  
+    
     number=np.array([0,0,0,0,0,0,0,0,0,0])                  # Arreglo de cantidad de ciclos que pasaron cada "RefreshTime" segundos
-    phase_flag=np.array([3,3,3,3,3,3,3,3,3,3])              # Arreglo de Flag de fases
 
-    NewCycleTime=np.array([90,90,90,90,90,90,90,90,90,90])  # Arreglo de duracion de cada Ciclo en las 10 intersecciones
+    CycleTime=np.array([90,90,90,90,90,90,90,90,90,90])  	# Arreglo de duracion de cada Ciclo en las 10 intersecciones
 
     totalVeh_acum = np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
     totalVeh_average = np.array([[0.0,0.0,0.0,0.0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
@@ -120,6 +117,11 @@ def run():
     
     RefreshingTime=RefreshTime                              # Inicializo el tiempo de actualizacion
 
+    #Arreglo de Tiempos y Fases COMPLETE
+    T = np.array([[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90]])
+    
+    Phase = np.array([[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42]])
+    NewPhase = np.array([[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42]])
     
     #Nombres COMPLETE
 
@@ -127,14 +129,12 @@ def run():
 
     Lights = np.array(["138851476","138851481","262577709","cluster_138851483_138852223","cluster_138852135_138852136_262577852_262577856_4318920281_4318920282","cluster_138852138_262577857_4318920283","cluster_138852139_2022135050_262577858_4318920284","cluster_138854732_138854733","cluster_138854740_4042381253_4042381255_4042381257_4042381260","cluster_258374867_262577862_4335777522"])
 
-    #Arreglo de Tiempos y Fases COMPLETE
-    T = np.array([[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90],[99999,99999,90]])
-    Phase = np.array([[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42],[42,42]])
-    
 
+   
     #Inicializar todos los semaforos en Fase 1
     for i in range(len(Lights)):
         traci.trafficlight.setPhase(Lights[i], 0)
+
 
     # Simulación de 1 hora
     while RefreshingTime <= 3600:
@@ -156,7 +156,6 @@ def run():
                 halt_acum[i]=0
                 cycle_acum[i]=0
                 waiting_acum[i]=0
-                phase_flag[i]=4                             # Pone arreglo de phase_flag a 4
                 
             halt_180.append(sum(halt_average))
             cycle_180.append(sum(cycle_average))            # Agrego el valor de duracion de ciclo promedio de la configuracion al arreglo
@@ -176,13 +175,13 @@ def run():
             population = ga.init_population(num_individuals, len(target_example)*2, allele_pool)
 
             #call genetic algorithm
-            best_ind, best_fitness = ga.genetic_algorithm(population, ga.gpa_maximization, totalVeh_average, 300, 0.0, "onepoint", "position")
+            best_ind, best_fitness = ga.genetic_algorithm(population, ga.gpa_maximization, totalVeh_average, 300, 0.0, "uniform", "position")
 
             for i in range(len(Phase)):
-                NewCycleTime[i] = Tw
+                CycleTime[i] = Tw
                 for j in range(len(Phase[i])):
-                    Phase[i][j] = best_ind.chromosome[i][j]-1
-                    NewCycleTime[i] = NewCycleTime[i] + Phase[i][j] + 1
+                    NewPhase[i][j] = best_ind.chromosome[i][j]-1
+                    CycleTime[i] = CycleTime[i] + NewPhase[i][j] + 1
             #plt.plot(bestfitness)
             #plt.show()
 
@@ -209,16 +208,15 @@ def run():
                             #NewCycleTime = round(((TotalNumber/K)+1)*Tw)
                             #TimePhase2 = round(((Number_E + Number_W)/(K+TotalNumber))*NewCycleTime) -1 + 5
                             #NewCycleTime = NewCycleTime + 10
-                            #TimePhase4 = NewCycleTime - TimePhase2 - Tw -2                
+                            #TimePhase4 = NewCycleTime - TimePhase2 - Tw -2 
+                            Phase[i] = NewPhase[i]
 
                             T[i][0] = timing + 1
                             T[i][1] = timing + Phase[i][0] + (Tw/2) + 1 + 1
-                            T[i][2] = timing + NewCycleTime[i]
-                            #Phase[i][0] = TimePhase2
-                            #Phase[i][1] = TimePhase4
+                            T[i][2] = timing + CycleTime[i]
 
-                            #Times = [NewCycleTime, TimePhase2+1, Tw/2,TimePhase4+1, Tw/2]
-                            #print("Inter:",i," ",Times)
+                            Times = [CycleTime[i], Phase[i][0]+1, Tw/2,Phase[i][1]+1, Tw/2]
+                            print("Inter:",i," ",Times)
 
                             Halt_N = traci.lane.getLastStepHaltingNumber(Lanes[i][0])
                             Halt_S = traci.lane.getLastStepHaltingNumber(Lanes[i][1])
@@ -234,18 +232,14 @@ def run():
                             
                             
                             halt_acum[i] = halt_acum[i] + TotalHalt
-                            cycle_acum[i] = cycle_acum[i] + NewCycleTime[i]
+                            cycle_acum[i] = cycle_acum[i] + CycleTime[i]
                             waiting_acum[i] = waiting_acum[i] + TotalWait
                             
                             number[i] = number[i]+1
 
-                            if (phase_flag[i]==4):    # Si se actualizaron los tiempos, reinicia la matriz phase_flag en 0 para cambiar la duracion de fases
-                                phase_flag[i]=0
                             
                         else:
-                            if (phase_flag[i]<3):
-                                traci.trafficlight.setPhaseDuration(Lights[i], Phase[i][j])
-                                phase_flag += 1 
+                            traci.trafficlight.setPhaseDuration(Lights[i], Phase[i][j])
                             T[i][j] = 99999
                             
     
