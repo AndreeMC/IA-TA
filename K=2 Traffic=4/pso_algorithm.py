@@ -100,7 +100,7 @@ def init_population(num_particles, num_traffic_lights, min_time, max_time):
 		population.append(p)
 	return population
 
-def pso_algorithm(population, fitness_fn, queued_vehicles, w=0.8, phi1=2, phi2=2, max_iter=100):
+def pso_algorithm(population, fitness_fn, queued_vehicles, w=0.8, decrease_factor=1,phi1=2, phi2=2, max_iter=100):
 	"""
 	Return the best population and the best fitness obtained for the traffic light optimization problem.
     population:  The initial population
@@ -112,8 +112,10 @@ def pso_algorithm(population, fitness_fn, queued_vehicles, w=0.8, phi1=2, phi2=2
 	max_iter: Maximum number of iterations that the search will have
 	"""
 	globalBestParticlePos = population[0].pos # Initialized with the first particle
+	currW = w
 
 	for iteration in range(max_iter):
+		currW = w * decrease_factor
 		# Update individual and global fitness
 		for particle in population:
 			fitness = fitness_fn(particle.pos, queued_vehicles)
@@ -125,15 +127,15 @@ def pso_algorithm(population, fitness_fn, queued_vehicles, w=0.8, phi1=2, phi2=2
 
 		# Move each particle
 		for particle in population:
-			particle.updatePosition(w, phi1, phi2, globalBestParticlePos)
+			particle.updatePosition(currW, phi1, phi2, globalBestParticlePos)
 
 	return _roundPosition(globalBestParticlePos), fitness_fn(globalBestParticlePos, queued_vehicles)
 
 def pso_maximization(particlePosition, queued_vehicles):
 	""" Returns the fitness for the particle's position and the current queued_vehicles distribution """
 	fitness = 0
-	for traffic_light in particlePosition:
-		fitness += gpa_one_intersection(traffic_light, queued_vehicles)
+	for i in range(len(particlePosition)):
+		fitness += gpa_one_intersection(particlePosition[i], queued_vehicles[i])
 	return fitness
 
 def _roundPosition(positions):

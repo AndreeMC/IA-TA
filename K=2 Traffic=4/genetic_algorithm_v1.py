@@ -11,7 +11,6 @@ import time
 import numpy as np
 from random import shuffle, random, sample, randint, randrange, uniform
 from copy import deepcopy
-import matplotlib.pyplot as plt
 import math
 
 
@@ -25,11 +24,11 @@ class Individual:
        cada elemento de la lista es un gen cuyos alelos (caracteres) posibles se indican en allele_pool"""
 
     def __init__(self, chromosome, allele_pool):  # el constructor recibe el cromosoma  y el pool de alelos posibles
-        
+
         self.chromosome = chromosome[:]
         self.allele_pool = allele_pool
         self.fitness = -1  # -1 indica que el individuo no ha sido evaluado
-        
+
     def print_chromosome(self):
         print('chromosome {}'.format(self.chromosome))
         print('fitness {}'.format(self.fitness))
@@ -37,13 +36,13 @@ class Individual:
     def crossover_onepoint(self, other):
         "Retorna dos nuevos individuos del cruzamiento de un punto entre individuos self y other "
         c = randrange(len(self.chromosome))
-        
+
         ind1 = Individual(self.chromosome[:c] + other.chromosome[c:], allele_pool)
         ind2 = Individual(other.chromosome[:c] + self.chromosome[c:], allele_pool)
 
-        return [ind1, ind2]   
-    
-    
+        return [ind1, ind2]
+
+
     def crossover_uniform(self, other):
         chromosome1 = []
         chromosome2 = []
@@ -57,17 +56,17 @@ class Individual:
                 chromosome2.append(self.chromosome[i])
         ind1 = Individual(chromosome1, allele_pool)
         ind2 = Individual(chromosome2, allele_pool)
-        return [ind1, ind2] 
+        return [ind1, ind2]
 
     def mutate_position(self):
         "Cambia aleatoriamente el alelo de un gen."
         mutated_chromosome = deepcopy(self.chromosome)
-        mutGene = randrange(0,len(mutated_chromosome)) 
+        mutGene = randrange(0,len(mutated_chromosome))
         newAllele1 = allele_pool[randrange(0,len(allele_pool))]
         newAllele2 = allele_pool[randrange(0,len(allele_pool))]
         mutated_chromosome[mutGene] = tuple([newAllele1, newAllele2])
         return Individual(mutated_chromosome, allele_pool)
-        
+
     def mutate_swap(self):
         "Escoge dos genes e intercambia sus alelos"
         mutated_chromosome = deepcopy(self.chromosome)
@@ -118,7 +117,7 @@ def gpa_one_intersection(time_inter, queued_inter, k=2):
 
     for i in range(0, len(queued_inter)):
         fitness += gpa_one_lane(time_inter[i%2],queued_inter[i], total_time)
-        
+
     return fitness
 
 
@@ -130,12 +129,12 @@ def gpa_one_lane(time_lane, queued_lane, total_time, k=2):
     w = 6/total_time
 
     fitness = queued_lane*math.log(v) + k*math.log(w)
-    
+
     return fitness
 
 
 # #### fitness function to evaluarte one population
-# 
+#
 
 # In[7]:
 
@@ -156,7 +155,7 @@ def evaluate_population(population, fitness_fn, queued_vehicles):
 def init_population(pop_number, chromosome_size, allele_pool):
     """Initializes population for genetic algorithm
     pop_number  :  Number of individuals in population
-    chromosome_size: The number of genes in each individual chromosome. 
+    chromosome_size: The number of genes in each individual chromosome.
     allele_pool :  List of possible values for the genes. This list is valid for all genes """
     num_alleles = len(allele_pool)
     population = []
@@ -181,22 +180,22 @@ def select_parents_roulette(population):
     sumfitness = sum([indiv.fitness for indiv in population])  # suma total del fitness de la poblacion
     pickfitness = uniform(0, sumfitness)   # escoge un numero aleatorio entre 0 y sumfitness
     cumfitness = 0     # fitness acumulado
-    
+
     for i in range(popsize):
         cumfitness += population[i].fitness
-        if cumfitness < pickfitness: 
+        if cumfitness < pickfitness:
             iParent1 = i
             break
-     
+
 
     # Escoje el segundo padre, desconsiderando el primer padre
     sumfitness = sumfitness - population[iParent1].fitness # retira el fitness del padre ya escogido
     pickfitness = uniform(0, sumfitness)   # escoge un numero aleatorio entre 0 y sumfitness
     cumfitness = 0     # fitness acumulado
     for i in range(popsize):
-        if i == iParent1: continue   # si es el primer padre 
+        if i == iParent1: continue   # si es el primer padre
         cumfitness += population[i].fitness
-        if cumfitness < pickfitness: 
+        if cumfitness < pickfitness:
             iParent2 = i
             break
 
@@ -222,30 +221,30 @@ def select_survivors(population, offspring_population, numsurvivors):
 
 
 def genetic_algorithm(population, fitness_fn, queued_vehicles, ngen=1000, pmut=0.1, crossover="onepoint", mutation="position", selection_method="roulette"):
-    
+
     popsize = len(population)
     evaluate_population(population, fitness_fn, queued_vehicles)  # evalua la poblacion inicial
     ibest = sorted(range(len(population)), key=lambda i: population[i].fitness, reverse=True)[:1]  # mejor individuo
     bestfitness = [population[ibest[0]].fitness]  # mejor fitness
 
     #print("Poblacion inicial, best_fitness = {}".format(population[ibest[0]].fitness))
-    
+
     for g in range(ngen):   # Por cada generacion
 
-        ## Selecciona las parejas de padres para cruzamiento 
+        ## Selecciona las parejas de padres para cruzamiento
         mating_pool = []
         if selection_method == 'tournament':
-            for i in range(int(popsize/2)): 
-                mating_pool.append(select_parents_tournament(population)) 
-        
-        if selection_method == 'roulette':
-            for i in range(int(popsize/2)): 
+            for i in range(int(popsize/2)):
+                mating_pool.append(select_parents_tournament(population))
 
-                mating_pool.append(select_parents_roulette(population)) 
-        
-        ## Crea la poblacion descendencia cruzando las parejas del mating pool 
+        if selection_method == 'roulette':
+            for i in range(int(popsize/2)):
+
+                mating_pool.append(select_parents_roulette(population))
+
+        ## Crea la poblacion descendencia cruzando las parejas del mating pool
         offspring_population = []
-        for i in range(len(mating_pool)): 
+        for i in range(len(mating_pool)):
 
             if crossover == "onepoint":
                 offspring_population.extend( mating_pool[i][0].crossover_onepoint(mating_pool[i][1]) ) # cruzamiento 1 punto
@@ -254,26 +253,26 @@ def genetic_algorithm(population, fitness_fn, queued_vehicles, ngen=1000, pmut=0
 
         ## Aplica el operador de mutacion con probabilidad pmut en cada hijo generado
         for i in range(len(offspring_population)):
-            if uniform(0, 1) < pmut: 
+            if uniform(0, 1) < pmut:
                 if mutation == "position":
                     offspring_population[i] = offspring_population[i].mutate_position()   # mutacion de una posicion
                 elif mutation == "swap":
                     offspring_population[i] = offspring_population[i].mutate_swap()      # mutacion swap
-        
+
         ## Evalua la poblacion descendencia creada
         evaluate_population(offspring_population, fitness_fn, queued_vehicles)  # evalua la poblacion descendencia
-        
+
         ## Selecciona popsize individuos para la sgte. generación de la union de la pob. actual y  pob. descendencia
         population = select_survivors(population, offspring_population, popsize)
 
         ## Almacena la historia del fitness del mejor individuo
         ibest = sorted(range(len(population)), key=lambda i: population[i].fitness, reverse=True)[:1]
         bestfitness.append(population[ibest[0]].fitness)
-        
+
         if (g % 10 == 0):
             best_string = population[ibest[0]].chromosome # convert the chromosome to a string for printing
             #print("generacion {}, Mejor individuol = {} (fitness = {})".format(g, best_string, population[ibest[0]].fitness))
-        
+
     best_string = population[ibest[0]].chromosome
     #print("Mejor individuo en la ultima generacion ({}) = {} (fitness = {})".format(g, best_string, population[ibest[0]].fitness))
     return population[ibest[0]], bestfitness  # devuelve el mejor individuo y la evolucion del mejor fitness x gen
@@ -324,4 +323,3 @@ best_ind.print_chromosome()
 
 
 best_ind.print_chromosome()
-
