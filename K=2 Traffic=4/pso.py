@@ -18,54 +18,47 @@ class _Particle(object):
 	:param vel: A list of pairs. Each pair represents the velocity for the n-th traffic light in self.pos
 	"""
 
-	def __init__(self, trafficLightsTimes, max_time):
+	def __init__(self, trafficLightsTimes, min_time, max_time):
 		self.pos = trafficLightsTimes
-		self.vel = self.generateRandomVelocities(trafficLightsTimes, max_time)
+		self.vel = self.generateRandomVelocities(trafficLightsTimes, min_time, max_time)
 
-	def generateRandomVelocities(self, trafficLightsTimes, max_time):
+	def generateRandomVelocities(self, trafficLightsTimes, min_time, max_time):
 		"""
 		Returns a list of random velocities pair for each pair of times in trafficLightsTimes.
-		The velocities will comply the rule that states: (xTime + yTime = max_time).
 		"""
 		velocities = []
-		minPos = 1
-		maxPos = max_time - 1
 		for tl in trafficLightsTimes:
+			# Get the current position
 			xPos = tl[0]
 			yPos = tl[1]
 
-			# Set a random velocity. The new velocity must not have an axis that is below minPos or is greater than maxPos
-			maxDelta = max(maxPos - xPos, maxPos - yPos, xPos - minPos, yPos - minPos)
-			xVel = randrange(-maxDelta, maxDelta)
-			if xPos + xVel < minPos or xPos + xVel > maxPos:
-				xVel = -xVel
+			# Get a random new velocity that complies that (xPos + xVel) is in the range [min_time, max_time]
+			xVel = randrange(min_time, max_time + 1) - xPos
+			yVel = randrange(min_time, max_time + 1) - yPos
 
-			# Remember that (x + y) must always sum max_time, so if x increases by n, y must decrease by n.
-			yVel = -xVel
 			velocities.append((xVel, yVel))
 		return velocities
 
-def init_population(num_particles, num_traffic_lights, max_time):
+def init_population(num_particles, num_traffic_lights, min_time, max_time):
 	"""
 	Return an initialized population for the pso algorithm for a 2-axes based traffic light problem.
     num_particles:  Number of particles in population
     num_traffic_lights: Number of traffics lights in one solution
-	max_time: Max cicle time in seconds
+	max_time: Max green time for a traffic light
+	min_time: Min green time for a traffic light
 	"""
-	minPos = 1
-	maxPos = max_time - 1
 	population = []
 	for particle in range(num_particles):
 		trafficLights = []
 		for tl in range(num_traffic_lights):
-			# Set the time for each axis. Remember that xPos + yPos must sum max_time
-			xPos = randrange(minPos, maxPos)
-			yPos = max_time - xPos
+			# Set the time for each axis
+			xPos = randrange(min_time, max_time + 1)
+			yPos = randrange(min_time, max_time + 1)
 
 			trafficLights.append((xPos, yPos))
 
 		# Will the list of pairs of times for each traffic light, create a new particle
-		p = _Particle(trafficLights, max_time)
+		p = _Particle(trafficLights, min_time, max_time)
 		population.append(p)
 	return population
 
@@ -82,7 +75,15 @@ def pso_algorithm(population, fitness_fn, w, phi1, phi2, max_iter):
 	bestPopulation = []
 	bestFitness = -1
 
-	#for iteration in range(max_iter):
+	for iteration in range(max_iter):
+		# Evaluate individual and global fitness
+		for particle in population:
+			# Update bestPopulation and bestFitness
+			pass
+
+		# Move each particle
+		for particle in population:
+			pass
 
 
 	return bestPopulation, bestFitness
@@ -90,7 +91,7 @@ def pso_algorithm(population, fitness_fn, w, phi1, phi2, max_iter):
 def _printPopulation(population):
 	""" Debug function that prints a population """
 	for particle in population:
-		print("\nParticle")
-		print(particle.pos)
-		print(particle.vel)
-#_printPopulation(init_population(6,10,90))
+		print("Particle")
+		print("Pos: {}".format(particle.pos))
+		print("Vel: {}\n".format(particle.vel))
+_printPopulation(init_population(6,10,5,60))
